@@ -34,9 +34,6 @@ class shopRetailcrmPlugin extends shopPlugin
 
     public function logger($message, $type, $errors = null)
     {
-        if (!file_exists(dirname(__FILE__) . "/../../../../../wa-log/retailcrm/")) {
-            mkdir(dirname(__FILE__) . "/../../../../../wa-log/retailcrm/", 0755);
-        }
         $format = "[" . date('Y-m-d H:i:s') . "]";
         if (!is_null($errors) && is_array($errors)) {
             $message .= ":\n";
@@ -48,24 +45,19 @@ class shopRetailcrmPlugin extends shopPlugin
         }
         switch ($type) {
             case 'connect':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/connect-error.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/connect-error.log');
                 break;
             case 'customers':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/customers-error.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/customers-error.log');
                 break;
             case 'orders':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/orders-error.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/orders-error.log');
                 break;
             case 'history':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/history-error.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/history-error.log');
                 break;
             case 'history-log':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/history.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/history-error.log');
                 break;
         }
 

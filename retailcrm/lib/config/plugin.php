@@ -1,6 +1,6 @@
 <?php
 
-$config = include(dirname(__FILE__) . "/../../../../../../wa-config/apps/shop/workflow.php");
+$config = include(wa()->getConfigPath('shop') . '/workflow.php');
 $handlers = array();
 foreach ($config["actions"] as $ak => $vk) {
     $handlers["order_action." . $ak] = 'orderAdd';

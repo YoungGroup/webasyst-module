@@ -83,7 +83,6 @@ $( document ).ready(function() {
                 <li role="presentation" {if $settings.setPage == 'handbook'}class="active"{/if}><a goto="handbook" role="tab" data-toggle="tab">Настройка справочников</a></li>
                 <li role="presentation" {if $settings.setPage == 'order-value'}class="active"{/if}><a goto="order-value" role="tab" data-toggle="tab">Cоответствия свойств заказа</a></li>
                 <li role="presentation" {if $settings.setPage == 'offers-value'}class="active"{/if}><a goto="offers-value" role="tab" data-toggle="tab">Cоответствия свойств товаров</a></li>
-                <li role="presentation" {if $settings.setPage == 'additionally'}class="active"{/if}><a goto="additionally" role="tab" data-toggle="tab">Дополнительно</a></li>
             {/if}
             <li role="presentation" id="retail-analytics" class="retail-no"><a goto="analytics" role="tab" data-toggle="tab">Intaro</a></li>
         </ul>
@@ -129,12 +128,12 @@ $( document ).ready(function() {
                     <div class="panel-heading">Настройки соединения</div>
                     <div class="panel-body retail-connect">
                         <div class="form-group">
-                            <label for="retail-url" class="control-label">Адрес RetailCRM:</label>
+                            <label for="retail-url" class="control-label">Адрес вашего RetailCRM:</label>
                             <input type="text" name="retailcrm[options][url]" class="form-control" id="retail-url" placeholder="https://demo.intarocrm.ru"
                             value="{if $settings.url}{$settings.url}{/if}">
                         </div>
                         <div class="form-group">
-                            <label for="retail-key" class="control-label">Ключ авторизации:</label>
+                            <label for="retail-key" class="control-label">API:</label>
                             <input type="text" name="retailcrm[options][key]" class="form-control" id="retail-key" placeholder="BTKPmnV9ojJLj0BTYjoKADHimiODE199"
                             value="{if $settings.key}{$settings.key}{/if}">
                         </div>
@@ -321,46 +320,6 @@ $( document ).ready(function() {
 
             </div>
             
-            <div role="tabpanel" class="tab-pane {if $settings.setPage == 'additionally'}active{/if}" id="additionally">
-                <div class="retail-message alert-danger">
-                    <strong>Внимание!!!</strong> Отнеситесь к данным настройкам со всей серьезностью
-                </div>
-                <div class="panel panel-default">
-                    <div class="panel-heading">Настройки</div>
-                    <div class="panel-body">
-                        <div class="checkbox">
-                            <label>
-                                <input name="retailcrm[options][number]" type="checkbox" value="1" {if $settings.number}checked{/if}>
-                                Включить сопостовление номеров заказа
-                            </label>
-                        </div>
-                        <div class="checkbox">
-                            <label>
-                                <input name="retailcrm[options][removeorder]" type="checkbox" value="1" {if $settings.removeorder}checked{/if}>
-                                Удалять заказы удалленые в CRM
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="panel panel-default">
-                    <div class="panel-heading">Настройки маршрутизации</div>
-                    <div class="panel-body">
-                        <div class="checkbox">
-                            <label>
-                                <input name="retailcrm[options][routing][addcategory]" type="checkbox" value="1" {if $settings.routing.addcategory}checked{/if}>
-                                Используются категории
-                            </label>
-                        </div>
-                        <div class="form-group">
-                            <label for="retail-routing-catalog" class="control-label">Символьный код каталога:</label>
-                            <input type="text" name="retailcrm[options][routing][catalog]" class="form-control" id="retail-routing-catalog" placeholder="shop"
-                            value="{if $settings.routing.catalog}{$settings.routing.catalog}{/if}">
-                        </div>
-                    </div>
-                </div>
-
-            </div>
             {/if}
 
             <div role="tabpanel" class="tab-pane retail-no" id="analytics">

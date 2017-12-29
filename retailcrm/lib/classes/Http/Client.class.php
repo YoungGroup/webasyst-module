@@ -12,6 +12,9 @@ class Client
 
     public function __construct($url, array $defaultParameters = array())
     {
+        waLog::dump([$url], 'shop/myplugin/order-actions/create.log');
+        if (false === stripos($url, 'https://') && false === stripos($url, 'http://'))
+            $url = 'https://' . $url;
         if (false === stripos($url, 'https://')) {
             throw new InvalidArgumentException('API schema requires HTTPS protocol');
         }

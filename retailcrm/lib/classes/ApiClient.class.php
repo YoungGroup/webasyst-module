@@ -5,7 +5,7 @@
  */
 class ApiClient
 {
-    const VERSION = 'v3';
+    const VERSION = 'v5';
 
     protected $client;
 
