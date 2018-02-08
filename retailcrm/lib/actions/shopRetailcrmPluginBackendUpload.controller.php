@@ -23,16 +23,16 @@ class shopRetailcrmPluginBackendUploadController extends waJsonController
 
     public function uploadDeliveryTypes()
     {
-        $client = $this->client;
+        $client = $this->client->request;
         $delivery = shopShipping::getList();
 
         foreach ($delivery as $code => $params) {
             try {
                 $client->deliveryTypesEdit(array(
-                "name" => $params["name"],
-                "code" => $code,
-                "description" => $params["description"],
-            ));
+                    "name" => $params["name"],
+                    "code" => $code,
+                    "description" => $params["description"],
+                ));
             } catch (CurlException $e) {
                 $this->setError("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage());
             }
@@ -41,7 +41,7 @@ class shopRetailcrmPluginBackendUploadController extends waJsonController
 
     public function uploadPaymentTypes()
     {
-        $client = $this->client;
+        $client = $this->client->request;
         $payment = waPayment::enumerate();
 
         foreach ($payment as $code => $params) {

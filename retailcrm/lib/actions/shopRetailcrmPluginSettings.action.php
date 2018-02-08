@@ -27,7 +27,7 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
     private function checkConnect($url, $key)
     {
         $this->client = new ApiClient($url, $key);
-        $client = $this->client;
+        $client = $this->client->request;
         try {
             $response = $client->statusesList();
         } catch (CurlException $e) {
@@ -43,74 +43,73 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
 
     private function prepareSettings()
     {
-        foreach ($this->settings["site"]["deliveryTypes"] as $key => $value) {
-            if (!isset($this->settings["deliveryTypes"][$value["code"]]) || empty($this->settings["deliveryTypes"][$value["code"]])) {
-                if (array_key_exists($value["code"], $this->settings["crm"]["deliveryTypes"])) {
-                    $this->settings["deliveryTypes"][$value["code"]] = $this->settings["crm"]["deliveryTypes"][$value["code"]]["code"];
+        if (isset($this->settings["site"]["deliveryTypes"])) {
+            foreach ($this->settings["site"]["deliveryTypes"] as $key => $value) {
+                if (!isset($this->settings["deliveryTypes"][$value["code"]]) || empty($this->settings["deliveryTypes"][$value["code"]])) {
+                    if (array_key_exists($value["code"], $this->settings["crm"]["deliveryTypes"])) {
+                        $this->settings["deliveryTypes"][$value["code"]] = $this->settings["crm"]["deliveryTypes"][$value["code"]]["code"];
+                    }
                 }
             }
         }
 
-        foreach ($this->settings["site"]["paymentTypes"] as $key => $value) {
-            if (!isset($this->settings["paymentTypes"][$value["code"]]) || empty($this->settings["paymentTypes"][$value["code"]])) {
-                if (array_key_exists($value["code"], $this->settings["crm"]["paymentTypes"])) {
-                    $this->settings["paymentTypes"][$value["code"]] = $this->settings["crm"]["paymentTypes"][$value["code"]]["code"];
+        if (isset($this->settings["site"]["paymentTypes"])) {
+            foreach ($this->settings["site"]["paymentTypes"] as $key => $value) {
+                if (!isset($this->settings["paymentTypes"][$value["code"]]) || empty($this->settings["paymentTypes"][$value["code"]])) {
+                    if (array_key_exists($value["code"], $this->settings["crm"]["paymentTypes"])) {
+                        $this->settings["paymentTypes"][$value["code"]] = $this->settings["crm"]["paymentTypes"][$value["code"]]["code"];
+                    }
                 }
             }
         }
 
-        foreach ($this->settings["site"]["statuses"] as $key => $value) {
-            if (!isset($this->settings["statuses"][$value["code"]]) || empty($this->settings["statuses"][$value["code"]])) {
-                if (array_key_exists($value["code"], $this->settings["crm"]["statuses"])) {
-                    $this->settings["statuses"][$value["code"]] = $this->settings["crm"]["statuses"][$value["code"]]["code"];
+        if (isset($this->settings["site"]["statuses"])) {
+            foreach ($this->settings["site"]["statuses"] as $key => $value) {
+                if (!isset($this->settings["statuses"][$value["code"]]) || empty($this->settings["statuses"][$value["code"]])) {
+                    if (array_key_exists($value["code"], $this->settings["crm"]["statuses"])) {
+                        $this->settings["statuses"][$value["code"]] = $this->settings["crm"]["statuses"][$value["code"]]["code"];
+                    }
                 }
             }
         }
 
-        foreach ($this->settings["crm"]["contactValue"] as $key => $value) {
-            if (!isset($this->settings["order"]["person"][$key]) || empty($this->settings["order"]["person"][$key])) {
-                if (array_key_exists($key, $this->settings["site"]["contactValue"])) {
-                    $this->settings["order"]["person"][$key] = $this->settings["site"]["contactValue"][$key];
+        if (isset($this->settings["crm"]["contactValue"])) {
+            foreach ($this->settings["crm"]["contactValue"] as $key => $value) {
+                if (!isset($this->settings["order"]["person"][$key]) || empty($this->settings["order"]["person"][$key])) {
+                    if (array_key_exists($key, $this->settings["site"]["contactValue"])) {
+                        $this->settings["order"]["person"][$key] = $this->settings["site"]["contactValue"][$key];
+                    }
                 }
-            }
-            if (!isset($this->settings["order"]["company"][$key]) || empty($this->settings["order"]["company"][$key])) {
-                if (array_key_exists($key, $this->settings["site"]["contactValue"])) {
-                    $this->settings["order"]["company"][$key] = $this->settings["site"]["contactValue"][$key];
-                }
-            }
-        }
-
-        foreach ($this->settings["crm"]["addressValue"] as $key => $value) {
-            if (!isset($this->settings["order"]["person"][$key]) || empty($this->settings["order"]["person"][$key])) {
-                if (array_key_exists($key, $this->settings["site"]["addressValue"])) {
-                    $this->settings["order"]["person"][$key] = $this->settings["site"]["addressValue"][$key];
-                    $save = true;
-                }
-            }
-            if (!isset($this->settings["order"]["company"][$key]) || empty($this->settings["order"]["company"][$key])) {
-                if (array_key_exists($key, $this->settings["site"]["addressValue"])) {
-                    $this->settings["order"]["company"][$key] = $this->settings["site"]["addressValue"][$key];
+                if (!isset($this->settings["order"]["company"][$key]) || empty($this->settings["order"]["company"][$key])) {
+                    if (array_key_exists($key, $this->settings["site"]["contactValue"])) {
+                        $this->settings["order"]["company"][$key] = $this->settings["site"]["contactValue"][$key];
+                    }
                 }
             }
         }
 
-        foreach ($this->settings["crm"]["addressValue"] as $key => $value) {
-            if (!isset($this->settings["order"]["person"][$key]) || empty($this->settings["order"]["person"][$key])) {
-                if (array_key_exists($key, $this->settings["site"]["addressValue"])) {
-                    $this->settings["order"]["person"][$key] = $this->settings["site"]["addressValue"][$key];
+        if (isset($this->settings["crm"]["addressValue"])) {
+            foreach ($this->settings["crm"]["addressValue"] as $key => $value) {
+                if (!isset($this->settings["order"]["person"][$key]) || empty($this->settings["order"]["person"][$key])) {
+                    if (array_key_exists($key, $this->settings["site"]["addressValue"])) {
+                        $this->settings["order"]["person"][$key] = $this->settings["site"]["addressValue"][$key];
+                        $save = true;
+                    }
                 }
-            }
-            if (!isset($this->settings["order"]["company"][$key]) || empty($this->settings["order"]["company"][$key])) {
-                if (array_key_exists($key, $this->settings["site"]["addressValue"])) {
-                    $this->settings["order"]["company"][$key] = $this->settings["site"]["addressValue"][$key];
+                if (!isset($this->settings["order"]["company"][$key]) || empty($this->settings["order"]["company"][$key])) {
+                    if (array_key_exists($key, $this->settings["site"]["addressValue"])) {
+                        $this->settings["order"]["company"][$key] = $this->settings["site"]["addressValue"][$key];
+                    }
                 }
             }
         }
 
-        foreach ($this->settings["crm"]["offers"] as $key => $value) {
-            if (!isset($this->settings["offers"][$key]) || empty($this->settings["offers"][$key])) {
-                if (array_key_exists($key, $this->settings["site"]["offers"])) {
-                    $this->settings["offers"][$key] = $this->settings["site"]["offers"][$key];
+        if (isset($this->settings["crm"]["offers"])) {
+            foreach ($this->settings["crm"]["offers"] as $key => $value) {
+                if (!isset($this->settings["offers"][$key]) || empty($this->settings["offers"][$key])) {
+                    if (array_key_exists($key, $this->settings["site"]["offers"])) {
+                        $this->settings["offers"][$key] = $this->settings["site"]["offers"][$key];
+                    }
                 }
             }
         }
@@ -175,7 +174,7 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
 
     private function addHandbook($settings)
     {
-        $client = $this->client;
+        $client = $this->client->request;
 
         try {
             $response = $client->deliveryTypesList();
@@ -186,9 +185,9 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
         if ($response->isSuccessful()) {
             foreach ($response->deliveryTypes as $code => $params) {
                 $this->settings["crm"]["deliveryTypes"][$code] = array(
-                        "name" => $params["name"],
-                        "code" => $params["code"]
-                    );
+                    "name" => $params["name"],
+                    "code" => $params["code"]
+                );
             }
         } else {
             $this->setError("Ошибка получения информации: " . $e->getMessage());
@@ -197,9 +196,9 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
         $delivery = shopShipping::getList();
         foreach ($delivery as $code => $params) {
             $this->settings["site"]["deliveryTypes"][$code] = array(
-                    "name" => $params["name"],
-                    "code" => $code
-                );
+                "name" => $params["name"],
+                "code" => $code
+            );
         }
 
         try {
@@ -211,9 +210,9 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
         if ($response->isSuccessful()) {
             foreach ($response->paymentTypes as $code => $params) {
                 $this->settings["crm"]["paymentTypes"][$code] = array(
-                        "name" => $params["name"],
-                        "code" => $params["code"]
-                    );
+                    "name" => $params["name"],
+                    "code" => $params["code"]
+                );
             }
         } else {
             $this->setError("Ошибка получения информации: " . $e->getMessage());
@@ -222,9 +221,9 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
         $payment = waPayment::enumerate();
         foreach ($payment as $code => $params) {
             $this->settings["site"]["paymentTypes"][$code] = array(
-                    "name" => $params["name"],
-                    "code" => $code
-                );
+                "name" => $params["name"],
+                "code" => $code
+            );
         }
 
         try {
@@ -236,9 +235,9 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
         if ($response->isSuccessful()) {
             foreach ($response->statuses as $code => $params) {
                 $this->settings["crm"]["statuses"][$code] = array(
-                        "name" => $params["name"],
-                        "code" => $params["code"]
-                    );
+                    "name" => $params["name"],
+                    "code" => $params["code"]
+                );
             }
         } else {
             $this->setError("Ошибка получения информации: " . $e->getMessage());
@@ -248,9 +247,9 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
         $statuses = $workflow->getAllStates();
         foreach ($statuses as $code => $params) {
             $this->settings["site"]["statuses"][$code] = array(
-                    "name" => $params->name,
-                    "code" => $params->id
-                );
+                "name" => $params->name,
+                "code" => $params->id
+            );
         }
     }
 }

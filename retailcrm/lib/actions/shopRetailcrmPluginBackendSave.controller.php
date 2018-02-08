@@ -30,7 +30,7 @@ class shopRetailcrmPluginBackendSaveController extends waJsonController
     public function checkConnect($url, $key)
     {
         $this->client = new ApiClient($url, $key);
-        $client = $this->client;
+        $client = $this->client->request;
         try {
             $response = $client->statusesList();
         } catch (CurlException $e) {
