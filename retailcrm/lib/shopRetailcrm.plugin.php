@@ -2,7 +2,12 @@
 class shopRetailcrmPlugin extends shopPlugin
 {
     private $client;
+    private $site;
 
+    /**
+     * @param $fio
+     * @return array|bool
+     */
     public function explodeFIO($fio)
     {
         $fio = (!$fio) ? false : explode(" ", $fio, 3);
@@ -32,11 +37,13 @@ class shopRetailcrmPlugin extends shopPlugin
         return $fio;
     }
 
+    /**
+     * @param $message
+     * @param $type
+     * @param null $errors
+     */
     public function logger($message, $type, $errors = null)
     {
-        if (!file_exists(dirname(__FILE__) . "/../../../../../wa-log/retailcrm/")) {
-            mkdir(dirname(__FILE__) . "/../../../../../wa-log/retailcrm/", 0755);
-        }
         $format = "[" . date('Y-m-d H:i:s') . "]";
         if (!is_null($errors) && is_array($errors)) {
             $message .= ":\n";
@@ -48,24 +55,19 @@ class shopRetailcrmPlugin extends shopPlugin
         }
         switch ($type) {
             case 'connect':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/connect-error.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/connect-error.log');
                 break;
             case 'customers':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/customers-error.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/customers-error.log');
                 break;
             case 'orders':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/orders-error.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/orders-error.log');
                 break;
             case 'history':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/history-error.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/history-error.log');
                 break;
             case 'history-log':
-                $path = dirname(__FILE__) . "/../../../../../wa-log/retailcrm/history.log";
-                error_log($format . " " . $message, 3, $path);
+                waLog::dump($format . " " . $message, 'shop/retailcrm/history-error.log');
                 break;
         }
 
@@ -73,12 +75,12 @@ class shopRetailcrmPlugin extends shopPlugin
         $settings = json_decode($app_settings_model->get(array('shop', 'retailcrm'), 'options'), true);
 
         $headers = "MIME-Version: 1.0\r\n" .
-                   "Content-type:text/html;charset=UTF-8\r\n" .
-                   "X-Priority: 1 (Highest)\r\n" .
-                   "X-MSMail-Priority: High\r\n" .
-                   "Importance: High\r\n" .
-                   "From: support@retailcrm.com\r\n" .
-                   "Reply-To: support@retailcrm.com\r\n";
+            "Content-type:text/html;charset=UTF-8\r\n" .
+            "X-Priority: 1 (Highest)\r\n" .
+            "X-MSMail-Priority: High\r\n" .
+            "Importance: High\r\n" .
+            "From: support@retailcrm.com\r\n" .
+            "Reply-To: support@retailcrm.com\r\n";
 
         if (isset($settings["siteurl"]) && !empty($settings["siteurl"])) {
             $headers .= "X-URL:" . $settings["siteurl"] . "\r\n";
@@ -89,71 +91,58 @@ class shopRetailcrmPlugin extends shopPlugin
         }
     }
 
+    /**
+     * @param $params
+     */
     public function orderAdd(&$params)
     {
-        error_reporting(E_ERROR);
-        ini_set("error_reporting", "E_ERROR");
+        //get settings
         $app_settings_model = new waAppSettingsModel();
         $settings = json_decode($app_settings_model->get(array('shop', 'retailcrm'), 'options'), true);
 
-        if (isset($settings["status"]) && !empty($settings["status"]) && !isset($settings["createApi"])) {
+        $hasStatus = isset($settings["status"]) && !empty($settings["status"]);
+        $hasSiteCode = isset($settings["sitecode"]) && !empty($settings["sitecode"]);
+        $hasUrl = isset($settings["url"]) && !empty($settings["url"]);
+        $hasKey = isset($settings["key"]) && !empty($settings["key"]);
+        if ($hasStatus && $hasSiteCode && $hasUrl && $hasKey) {
             $this->client = new ApiClient($settings["url"], $settings["key"]);
+            $this->site = $settings['sitecode'];
             $customers = $this->getCustomers($settings);
             $orders = $this->getOrders($customers, $settings);
             $edit = $this->orderPrepare($customers, $orders, $params);
 
             $this->edit($edit);
-            $this->session($edit);
         }
     }
 
-    private function session($edit)
-    {
-        $_SESSION["retailcrm"]["id"] = $edit["order"]["externalId"];
-        $_SESSION["retailcrm"]["total"] = $this->calcTotal($edit["order"]);
-        foreach ($edit["order"]["items"] as $key => $val) {
-            $_SESSION["retailcrm"]["items"][ $key ]["price"] = $val["initialPrice"];
-            $_SESSION["retailcrm"]["items"][ $key ]["quantity"] = $val["quantity"];
-        }
-    }
-
-    private function calcTotal($data)
-    {
-        $total = 0;
-        foreach ($data['items'] as $item) {
-            $total += $item['initialPrice'] * (int) $item['quantity'];
-        }
-        if ($total == 0) {
-            return $total;
-        }
-        $discount = 0;
-        if (isset($data['discount'])) {
-            $discount = $data['discount'];
-        }
-        $delivery = 0;
-        if (isset($data["delivery"]["cost"])) {
-            $delivery = $data["delivery"]["cost"];
-        }
-
-        return $total - $discount + $delivery;
-    }
-
+    /**
+     * @param $customers
+     * @param $orders
+     * @param $params
+     * @return array
+     */
     private function orderPrepare($customers, $orders, $params)
     {
         $result = array();
-
         $result["order"] = (isset($orders[$params["order_id"]])) ? $orders[$params["order_id"]] : "";
         $result["customer"] = (isset($customers[$result["order"]["customerId"]])) ? $customers[$result["order"]["customerId"]] : "";
 
         return $result;
     }
 
+    /**
+     * @param $edit
+     */
     private function edit($edit)
     {
-        $client = $this->client;
+        $client = $this->client->request;
+        $customerId = '';
+
         if (!is_null($edit["customer"])) {
             try {
-                $response = $client->customersEdit($edit["customer"]);
+                $response = $client->customersEdit($edit["customer"], 'externalId', $this->site);
+                if ($response->getStatusCode() == '404')
+                    $response = $client->customersCreate($edit["customer"], $this->site);
             } catch (CurlException $e) {
                 $this->logger("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage(), "connect");
                 die();
@@ -165,13 +154,16 @@ class shopRetailcrmPlugin extends shopPlugin
                     $response->getStatusCode(),
                     $response->getErrorMsg()
                 );
-                $this->logger($message, "customers", $response["errors"]);
+                $this->logger($message, "customers", $response["errorMsg"]);
+            } else {
+                $customerId = (string)$response['id'];
             }
         }
 
         if (!is_null($edit["order"])) {
             try {
-                $response = $client->ordersEdit($edit["order"]);
+                $edit["order"]['customer']['id'] = $customerId;
+                $response = $client->ordersEdit($edit["order"], 'externalId', $this->site);
             } catch (CurlException $e) {
                 $this->logger("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage(), "connect");
                 die();
@@ -183,18 +175,22 @@ class shopRetailcrmPlugin extends shopPlugin
                     $response->getStatusCode(),
                     $response->getErrorMsg()
                 );
-                $this->logger($message, "customers", $response["errors"]);
+                $this->logger($message, "orders", $response["errorMsg"]);
             }
         }
     }
 
-    public function getCustomers($parentSetting, $filter)
+    /**
+     * @param $parentSetting
+     * @return array
+     */
+    public function getCustomers($parentSetting)
     {
         $contact = new waContactsCollection();
         $customers = array();
 
-        $country = new waContactCountryField();
-        $country = $country->getOptions();
+//        $country = new waContactCountryField(null, null);
+//        $country = $country->getOptions();
 
         $region = new waRegionModel;
         $region = $region->getAll();
@@ -240,8 +236,8 @@ class shopRetailcrmPlugin extends shopPlugin
 
             if (isset($settings["email"]) && !empty($settings["email"]) && !empty($value[ $settings["email"] ])) {
                 $customer["email"] = (is_array($value[ $settings["email"] ])) ?
-                $value[ $settings["email"] ][0] :
-                $value[ $settings["email"] ];
+                    $value[ $settings["email"] ][0] :
+                    $value[ $settings["email"] ];
             }
 
             if (isset($settings["phone"]) && !empty($settings["phone"]) && !empty($value[ $settings["phone"] ])) {
@@ -263,16 +259,16 @@ class shopRetailcrmPlugin extends shopPlugin
                 $customer["address"]["index"] = $address[ $settings["index"] ];
             }
 
-            if (isset($settings["country"]) && !empty($settings["country"]) && !empty($address[ $settings["country"] ])) {
-                $customer["address"]["country"] = (array_key_exists($address[ $settings["country"] ], $country)) ?
-                $country[ $address[ $settings["country"] ] ] :
-                $address[ $settings["country"] ];
-            }
+//            if (isset($settings["country"]) && !empty($settings["country"]) && !empty($address[ $settings["country"] ])) {
+//                $customer["address"]["country"] = (array_key_exists($address[ $settings["country"] ], $country)) ?
+//                    $country[ $address[ $settings["country"] ] ] :
+//                    $address[ $settings["country"] ];
+//            }
 
             if (isset($settings["region"]) && !empty($settings["region"]) && !empty($address[ $settings["region"] ])) {
                 $customer["address"]["region"] = (array_key_exists($address[ $settings["region"] ], $regions)) ?
-                $regions[ $address[ $settings["region"] ] ] :
-                $address[ $settings["region"] ];
+                    $regions[ $address[ $settings["region"] ] ] :
+                    $address[ $settings["region"] ];
             }
 
             if (isset($settings["city"]) && !empty($settings["city"]) && !empty($address[ $settings["city"] ])) {
@@ -313,6 +309,11 @@ class shopRetailcrmPlugin extends shopPlugin
         return $customers;
     }
 
+    /**
+     * @param $customers
+     * @param $parentSetting
+     * @return array
+     */
     public function getOrders($customers, $parentSetting)
     {
         $shopOrders = null;
@@ -347,6 +348,7 @@ class shopRetailcrmPlugin extends shopPlugin
             }
 
             $order["customerId"] = $value["contact_id"];
+            $order["customer"]['id'] = '';
 
             $customer = array();
             if (isset($customers[ $order["customerId"] ]) && is_array($customers[ $order["customerId"] ])) {
@@ -437,6 +439,9 @@ class shopRetailcrmPlugin extends shopPlugin
         return $orders;
     }
 
+    /**
+     * @return string
+     */
     public function analyticsAdd()
     {
         $app_settings_model = new waAppSettingsModel();
@@ -469,9 +474,9 @@ class shopRetailcrmPlugin extends shopPlugin
                                     'affiliation': '%s', // заменить на реальное доменное имя
                                     'revenue': %s}
                                 });\n",
-                                $_SESSION['retailcrm']['id'],
-                                parse_url($settings["siteurl"],
-                                PHP_URL_HOST), $_SESSION['retailcrm']['total']);
+                    $_SESSION['retailcrm']['id'],
+                    parse_url($settings["siteurl"],
+                        PHP_URL_HOST), $_SESSION['retailcrm']['total']);
                 foreach ($_SESSION['retailcrm'] as $item) {
                     $js .= sprintf("ga('ecommerce:addItem', {
                                         'id': %s,
