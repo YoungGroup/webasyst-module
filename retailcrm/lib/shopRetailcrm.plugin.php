@@ -189,9 +189,6 @@ class shopRetailcrmPlugin extends shopPlugin
         $contact = new waContactsCollection();
         $customers = array();
 
-//        $country = new waContactCountryField(null, null);
-//        $country = $country->getOptions();
-
         $region = new waRegionModel;
         $region = $region->getAll();
         $regions = array();
@@ -259,11 +256,10 @@ class shopRetailcrmPlugin extends shopPlugin
                 $customer["address"]["index"] = $address[ $settings["index"] ];
             }
 
-//            if (isset($settings["country"]) && !empty($settings["country"]) && !empty($address[ $settings["country"] ])) {
-//                $customer["address"]["country"] = (array_key_exists($address[ $settings["country"] ], $country)) ?
-//                    $country[ $address[ $settings["country"] ] ] :
-//                    $address[ $settings["country"] ];
-//            }
+            if (isset($settings["country"]) && !empty($settings["country"]) && !empty($address[ $settings["country"] ])) {
+                $country = (new waCountryModel())->get($address[ $settings["country"] ])['iso2letter'];
+                $customer["address"]["countryIso"] = $country;
+            }
 
             if (isset($settings["region"]) && !empty($settings["region"]) && !empty($address[ $settings["region"] ])) {
                 $customer["address"]["region"] = (array_key_exists($address[ $settings["region"] ], $regions)) ?
@@ -344,7 +340,7 @@ class shopRetailcrmPlugin extends shopPlugin
             $order["createdAt"] = $value["create_datetime"];
 
             if ($value["discount"] > 0) {
-                $order["discount"] = $value["discount"];
+                $order["discountManualAmount"] = $value["discount"];
             }
 
             $order["customerId"] = $value["contact_id"];
@@ -437,61 +433,5 @@ class shopRetailcrmPlugin extends shopPlugin
         }
 
         return $orders;
-    }
-
-    /**
-     * @return string
-     */
-    public function analyticsAdd()
-    {
-        $app_settings_model = new waAppSettingsModel();
-        $settings = json_decode($app_settings_model->get(array('shop', 'retailcrm'), 'options'), true);
-        $js = "";
-        if (isset($settings["status"]) && isset($settings["analytics"]["status"]) && isset($settings["analytics"]["id"])) {
-            $js = "<script type=\"text/javascript\">
-                        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-                        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-                        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-                        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-                        ga('create', '%s', 'auto');
-
-                        function getCookie(name) {
-                            var matches = document.cookie.match(new RegExp(
-                                \"(?:^|; )\" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + \"=([^;]*)\"
-                            ));
-
-                            return matches ? decodeURIComponent(matches[1]) : \"\";
-                        }
-
-                        ga('set', 'dimension1', getCookie(\"_ga\"));
-                        ga('send', 'pageview');\n";
-
-            if (isset($_SESSION['retailcrm'])) {
-                $js .= "ga('require', 'ecommerce', 'ecommerce.js');\n";
-                $js .= sprintf("ga('ecommerce:addTransaction', {
-                                    'id': %s,
-                                    'affiliation': '%s', // заменить на реальное доменное имя
-                                    'revenue': %s}
-                                });\n",
-                    $_SESSION['retailcrm']['id'],
-                    parse_url($settings["siteurl"],
-                        PHP_URL_HOST), $_SESSION['retailcrm']['total']);
-                foreach ($_SESSION['retailcrm'] as $item) {
-                    $js .= sprintf("ga('ecommerce:addItem', {
-                                        'id': %s,
-                                        'price': %s,
-                                        'quantity': %s
-                                    });\n", $_SESSION['retailcrm']['id'], $item["price"], $item["quantity"]);
-                }
-                $js .= "ga('ecommerce:send');\n";
-                unset($_SESSION['retailcrm']);
-            }
-
-            $js .= "</script>";
-            $js = sprintf($js, $settings["analytics"]["id"]);
-        };
-
-        return $js;
     }
 }
