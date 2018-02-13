@@ -194,6 +194,7 @@
                         <div class="panel-heading">
                             Статусы
                         </div>
+                        {if isset($settings.site.statuses)}
                         <div class="panel-body">
                             {foreach from=$settings.site.statuses key=code item=params}
                             <div class="form-group">
@@ -211,6 +212,7 @@
                             </div>
                             {/foreach}
                         </div>
+                        {/if}
                     </div>
 
                 </div>

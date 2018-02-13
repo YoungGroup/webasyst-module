@@ -1,14 +1,13 @@
 <?php
 
-$app_config = wa()->getConfig()->getAppConfig('shop');
-$workflowPath = $app_config->getConfigPath('data/workflow.php', false);
+$appConfig = wa()->getConfig()->getAppConfig('shop');
+$workflowPath = $appConfig->getConfigPath('data/workflow.php', false);
 $config = include ($workflowPath);
 $handlers = array();
 
 foreach ($config['actions'] as $ak => $vk) {
     $handlers["order_action." . $ak] = 'orderAdd';
 }
-$handlers["frontend_head"] = "analyticsAdd";
 
 return array(
     'name'          => 'Retailcrm',

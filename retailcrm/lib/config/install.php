@@ -1,7 +1,7 @@
 <?php
 
-$app_settings_model = new waAppSettingsModel();
-$app_settings_model->set(
+$appSettingsModel = new waAppSettingsModel();
+$appSettingsModel->set(
     array('shop', 'retailcrm'),
     'options',
     '{"status":"0","email":"integration@retailcrm.ru"}'

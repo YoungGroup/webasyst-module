@@ -1,4 +1,5 @@
 <?php
+
 class retailcrmFeatureModel extends shopFeatureModel
 {
     public function getByProduct($product_id)

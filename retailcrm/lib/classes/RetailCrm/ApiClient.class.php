@@ -34,14 +34,14 @@ class ApiClient
         $this->version = $version;
 
         switch ($version) {
-            case self::V5:
-                $this->request = new ApiVersion5($url, $apiKey, $version, $site);
+            case self::V3:
+                $this->request = new ApiVersion3($url, $apiKey, $version, $site);
                 break;
             case self::V4:
                 $this->request = new ApiVersion4($url, $apiKey, $version, $site);
                 break;
-            case self::V3:
-                $this->request = new ApiVersion3($url, $apiKey, $version, $site);
+            case self::V5:
+                $this->request = new ApiVersion5($url, $apiKey, $version, $site);
                 break;
         }
     }

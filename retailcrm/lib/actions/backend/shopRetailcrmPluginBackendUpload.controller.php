@@ -2,33 +2,32 @@
 
 class shopRetailcrmPluginBackendUploadController extends waJsonController
 {
-    public $client;
+    private $client;
+
     public function execute()
     {
-        $app_settings_model = new waAppSettingsModel();
-        $settings = json_decode($app_settings_model->get(array('shop', 'retailcrm'), 'options'), true);
-        $this->client = new ApiClient($settings["url"], $settings["key"]);
-
-        $type = $this->getRequest()->get("upload");
-        switch ($type) {
-            case "deliveryTypes":
-                $this->uploadDeliveryTypes();
-                break;
-            case "paymentTypes":
-                $this->uploadPaymentTypes();
-                break;
+        $this->client = wa()->getPlugin('retailcrm')->getRetailcrmApiClient();
+        if ($this->client) {
+            $type = $this->getRequest()->get("upload");
+            switch ($type) {
+                case "deliveryTypes":
+                    $this->uploadDeliveryTypes();
+                    break;
+                case "paymentTypes":
+                    $this->uploadPaymentTypes();
+                    break;
+            }
+            $this->response['message'] = _w('Saved');
         }
-        $this->response['message'] = _w('Saved');
     }
 
     public function uploadDeliveryTypes()
     {
-        $client = $this->client->request;
         $delivery = shopShipping::getList();
 
         foreach ($delivery as $code => $params) {
             try {
-                $client->deliveryTypesEdit(array(
+                $this->client->deliveryTypesEdit(array(
                     "name" => $params["name"],
                     "code" => $code,
                     "description" => $params["description"],
@@ -41,12 +40,11 @@ class shopRetailcrmPluginBackendUploadController extends waJsonController
 
     public function uploadPaymentTypes()
     {
-        $client = $this->client->request;
         $payment = waPayment::enumerate();
 
         foreach ($payment as $code => $params) {
             try {
-                $client->paymentTypesEdit(array(
+                $this->client->paymentTypesEdit(array(
                     "name" => $params["name"],
                     "code" => $code,
                     "description" => $params["description"],

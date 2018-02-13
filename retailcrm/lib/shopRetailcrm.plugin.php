@@ -1,13 +1,12 @@
 <?php
+
 class shopRetailcrmPlugin extends shopPlugin
 {
-    private $client;
+
     private $site;
 
-    /**
-     * @param $fio
-     * @return array|bool
-     */
+    private $client;
+
     public function explodeFIO($fio)
     {
         $fio = (!$fio) ? false : explode(" ", $fio, 3);
@@ -37,11 +36,6 @@ class shopRetailcrmPlugin extends shopPlugin
         return $fio;
     }
 
-    /**
-     * @param $message
-     * @param $type
-     * @param null $errors
-     */
     public function logger($message, $type, $errors = null)
     {
         $format = "[" . date('Y-m-d H:i:s') . "]";
@@ -69,11 +63,12 @@ class shopRetailcrmPlugin extends shopPlugin
             case 'history-log':
                 waLog::dump($format . " " . $message, 'shop/retailcrm/history-error.log');
                 break;
+            case 'request':
+                waLog::dump($format . " " . $message, 'shop/retailcrm/request-error.log');
+                break;
         }
 
-        $app_settings_model = new waAppSettingsModel();
-        $settings = json_decode($app_settings_model->get(array('shop', 'retailcrm'), 'options'), true);
-
+        $settings = $this->settings();
         $headers = "MIME-Version: 1.0\r\n" .
             "Content-type:text/html;charset=UTF-8\r\n" .
             "X-Priority: 1 (Highest)\r\n" .
@@ -91,22 +86,17 @@ class shopRetailcrmPlugin extends shopPlugin
         }
     }
 
-    /**
-     * @param $params
-     */
     public function orderAdd(&$params)
     {
         //get settings
-        $app_settings_model = new waAppSettingsModel();
-        $settings = json_decode($app_settings_model->get(array('shop', 'retailcrm'), 'options'), true);
-
+        $settings = $this->settings();
         $hasStatus = isset($settings["status"]) && !empty($settings["status"]);
         $hasSiteCode = isset($settings["sitecode"]) && !empty($settings["sitecode"]);
         $hasUrl = isset($settings["url"]) && !empty($settings["url"]);
         $hasKey = isset($settings["key"]) && !empty($settings["key"]);
         if ($hasStatus && $hasSiteCode && $hasUrl && $hasKey) {
-            $this->client = new ApiClient($settings["url"], $settings["key"]);
             $this->site = $settings['sitecode'];
+            $this->client = $this->getRetailcrmApiClient();
             $customers = $this->getCustomers($settings);
             $orders = $this->getOrders($customers, $settings);
             $edit = $this->orderPrepare($customers, $orders, $params);
@@ -115,12 +105,6 @@ class shopRetailcrmPlugin extends shopPlugin
         }
     }
 
-    /**
-     * @param $customers
-     * @param $orders
-     * @param $params
-     * @return array
-     */
     private function orderPrepare($customers, $orders, $params)
     {
         $result = array();
@@ -130,19 +114,15 @@ class shopRetailcrmPlugin extends shopPlugin
         return $result;
     }
 
-    /**
-     * @param $edit
-     */
     private function edit($edit)
     {
-        $client = $this->client->request;
         $customerId = '';
 
         if (!is_null($edit["customer"])) {
             try {
-                $response = $client->customersEdit($edit["customer"], 'externalId', $this->site);
+                $response = $this->client->customersEdit($edit["customer"], 'externalId', $this->site);
                 if ($response->getStatusCode() == '404')
-                    $response = $client->customersCreate($edit["customer"], $this->site);
+                    $response = $this->client->customersCreate($edit["customer"], $this->site);
             } catch (CurlException $e) {
                 $this->logger("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage(), "connect");
                 die();
@@ -163,7 +143,7 @@ class shopRetailcrmPlugin extends shopPlugin
         if (!is_null($edit["order"])) {
             try {
                 $edit["order"]['customer']['id'] = $customerId;
-                $response = $client->ordersEdit($edit["order"], 'externalId', $this->site);
+                $response = $this->client->ordersEdit($edit["order"], 'externalId', $this->site);
             } catch (CurlException $e) {
                 $this->logger("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage(), "connect");
                 die();
@@ -180,10 +160,6 @@ class shopRetailcrmPlugin extends shopPlugin
         }
     }
 
-    /**
-     * @param $parentSetting
-     * @return array
-     */
     public function getCustomers($parentSetting)
     {
         $contact = new waContactsCollection();
@@ -305,11 +281,6 @@ class shopRetailcrmPlugin extends shopPlugin
         return $customers;
     }
 
-    /**
-     * @param $customers
-     * @param $parentSetting
-     * @return array
-     */
     public function getOrders($customers, $parentSetting)
     {
         $shopOrders = null;
@@ -320,8 +291,8 @@ class shopRetailcrmPlugin extends shopPlugin
         }
         $orders = array();
 
-        $app_settings_model = new waAppSettingsModel();
-        $orderFormat = htmlspecialchars($app_settings_model->get('shop', 'order_format', "#100\{\$order.id\}"), ENT_QUOTES, 'utf-8');
+        $appSettingsModel = new waAppSettingsModel();
+        $orderFormat = htmlspecialchars($appSettingsModel->get('shop', 'order_format', "#100\{\$order.id\}"), ENT_QUOTES, 'utf-8');
 
         foreach ($shopOrders->getOrders("*", 0, 99999) as $key => $value) {
             $order = array();
@@ -433,5 +404,110 @@ class shopRetailcrmPlugin extends shopPlugin
         }
 
         return $orders;
+    }
+
+    public function validate(array $params)
+    {
+        $valid = false;
+        $paramsKeys = array_keys($params);
+        $requiredParams = [
+            'id',
+            'is_update',
+            'is_create',
+            'is_delete',
+        ];
+
+        if (!empty(array_diff($requiredParams, $paramsKeys)))
+            $this->logger('Request structure error, do not specify required params.', 'request');
+        elseif(!$params['is_update'] && !$params['is_create'] && !$params['is_delete'])
+            $this->logger('No action type specified.', 'request');
+        elseif (!$params['id'])
+            $this->logger('Invalid value of the ID parameter', 'request');
+        else
+            $valid = true;
+
+        return $valid;
+    }
+
+    public function checkAuth(array $headers)
+    {
+        $isAuth = false;
+        if (!isset($headers['Authorization']))
+            $this->logger('The request does not specify a required header: Authorization', 'request');
+        else {
+            $str = strstr($headers['Authorization'], ' ', false);
+            $str = trim($str);
+            $str = base64_decode($str);
+            $credentials = explode(':', $str);
+
+            $userModel = new waUserModel();
+            $user = $userModel->getByLogin($credentials[0]);
+            if (is_null($userModel) || $user['password'] !== waUser::getPasswordHash($credentials[1]))
+                $this->logger('Login and/or password are incorrect', 'request');
+            else
+                $isAuth = true;
+        }
+
+        return $isAuth;
+    }
+
+    public function getRetailcrmOrderData($id)
+    {
+        $order = null;
+        $response = null;
+        $client = $this->getRetailcrmApiClient();
+        if ($client) {
+            try {
+                $response = $this->client->ordersGet($id, 'id');
+            } catch (\CurlException $e) {
+                $this->logger("Connection error: " . $e->getMessage(), 'connect');
+            }
+
+            if (!is_null($response) && $response->isSuccessful())
+                $order = $response->getOrder();
+            else
+                $this->logger("Error: " . $response->getStatusCode() . ' ' . $response->getErrorMsg(), 'orders');
+        }
+
+        return $order;
+    }
+
+    public function settings()
+    {
+        $settings = (new waAppSettingsModel())->get(array('shop', 'retailcrm'), 'options');
+        $settings = json_decode($settings, true);
+
+        return $settings;
+    }
+
+    public function getRetailcrmApiClient()
+    {
+        static $client;
+        if (!$client) {
+            $settings = $this->settings();
+            $hasUrl = isset($settings['url']) && !is_null($settings['url']);
+            $hasKey = isset($settings['key']) && !is_null($settings['key']);
+            if (!empty($settings) && $hasKey && $hasUrl);
+                $client = (new ApiClient($settings['url'], $settings['key']))->request;
+        }
+
+        return $client;
+    }
+
+    public function checkConnect()
+    {
+        $client = $this->getRetailcrmApiClient();
+        if ($client) {
+            try {
+                $response = $client->statusesList();
+
+                if ($response->isSuccessful())
+                    return true;
+            } catch (CurlException $e) {
+                $this->logger("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage(), 'connect');
+            }
+        }
+
+        return false;
     }
 }

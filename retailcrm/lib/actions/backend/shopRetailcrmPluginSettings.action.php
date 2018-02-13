@@ -2,19 +2,22 @@
 
 class shopRetailcrmPluginSettingsAction extends waViewAction
 {
-    public $client;
     public $settings;
 
     public function execute()
     {
-        $app_settings_model = new waAppSettingsModel();
-        $this->settings = json_decode($app_settings_model->get(array('shop', 'retailcrm'), 'options'), true);
+        $this->settings = $this->plugin()->settings();
+        $companyName = htmlspecialchars(
+            (new waAppSettingsModel())->get('webasyst', 'name', 'Webasyst'),
+            ENT_QUOTES,
+            'utf-8'
+        );
 
-        $companyName = htmlspecialchars($app_settings_model->get('webasyst', 'name', 'Webasyst'), ENT_QUOTES, 'utf-8');
-
-        if (!is_null($this->settings["url"]) && !is_null($this->settings["key"])) {
-            if ($this->checkConnect($this->settings["url"], $this->settings["key"])) {
-                $this->addHandbook($this->settings);
+        $hasUrl = isset($this->settings['url']) && !is_null($this->settings["url"]);
+        $hasKey = isset($this->settings['key']) && !is_null($this->settings["key"]);
+        if ($hasUrl && $hasKey) {
+            if ($this->plugin()->checkConnect()) {
+                $this->addHandbook();
                 $this->addValue();
                 $this->prepareSettings();
             }
@@ -22,23 +25,6 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
 
         $this->view->assign('settings', $this->settings);
         $this->view->assign('companyName', $companyName);
-    }
-
-    private function checkConnect($url, $key)
-    {
-        $this->client = new ApiClient($url, $key);
-        $client = $this->client->request;
-        try {
-            $response = $client->statusesList();
-        } catch (CurlException $e) {
-            $this->setError("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage());
-        }
-
-        if ($response->isSuccessful()) {
-            return true;
-        } else {
-            return false;
-        }
     }
 
     private function prepareSettings()
@@ -172,14 +158,14 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
         }
     }
 
-    private function addHandbook($settings)
+    private function addHandbook()
     {
-        $client = $this->client->request;
+        $client = $this->plugin()->getRetailcrmApiClient();
 
         try {
             $response = $client->deliveryTypesList();
         } catch (CurlException $e) {
-            $this->setError("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage());
+            $this->plugin()->logger("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage(), 'connect');
         }
 
         if ($response->isSuccessful()) {
@@ -190,7 +176,7 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
                 );
             }
         } else {
-            $this->setError("Ошибка получения информации: " . $e->getMessage());
+            $this->plugin()->logger("Ошибка получения информации: " . $e->getMessage(), 'request');
         }
 
         $delivery = shopShipping::getList();
@@ -204,7 +190,7 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
         try {
             $response = $client->paymentTypesList();
         } catch (CurlException $e) {
-            $this->setError("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage());
+            $this->plugin()->logger("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage(), 'connect');
         }
 
         if ($response->isSuccessful()) {
@@ -215,7 +201,7 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
                 );
             }
         } else {
-            $this->setError("Ошибка получения информации: " . $e->getMessage());
+            $this->plugin()->logger("Ошибка получения информации: " . $e->getMessage(), 'request');
         }
 
         $payment = waPayment::enumerate();
@@ -229,7 +215,7 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
         try {
             $response = $client->statusesList();
         } catch (CurlException $e) {
-            $this->setError("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage());
+            $this->plugin()->logger("Сетевые проблемы. Ошибка подключения к retailCRM: " . $e->getMessage(), 'connect');
         }
 
         if ($response->isSuccessful()) {
@@ -240,7 +226,7 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
                 );
             }
         } else {
-            $this->setError("Ошибка получения информации: " . $e->getMessage());
+            $this->plugin()->logger("Ошибка получения информации: " . $e->getMessage(), 'request');
         }
 
         $workflow = new shopWorkflow();
@@ -251,5 +237,17 @@ class shopRetailcrmPluginSettingsAction extends waViewAction
                 "code" => $params->id
             );
         }
+    }
+
+    private function plugin()
+    {
+        static $plugin;
+        if (!$plugin) {
+            $plugin = wa()->getPlugin('retailcrm');
+            /**
+             * @var shopRetailcrmPlugin $plugin
+             */
+        }
+        return $plugin;
     }
 }
