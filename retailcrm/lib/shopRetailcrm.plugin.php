@@ -1,12 +1,24 @@
 <?php
 
+/**
+ * Class shopRetailcrmPlugin
+ */
 class shopRetailcrmPlugin extends shopPlugin
 {
-
+    /**
+     * @var
+     */
     private $site;
 
+    /**
+     * @var
+     */
     private $client;
 
+    /**
+     * @param $fio
+     * @return array|bool
+     */
     public function explodeFIO($fio)
     {
         $fio = (!$fio) ? false : explode(" ", $fio, 3);
@@ -36,6 +48,11 @@ class shopRetailcrmPlugin extends shopPlugin
         return $fio;
     }
 
+    /**
+     * @param $message
+     * @param $type
+     * @param null $errors
+     */
     public function logger($message, $type, $errors = null)
     {
         $format = "[" . date('Y-m-d H:i:s') . "]";
@@ -66,6 +83,9 @@ class shopRetailcrmPlugin extends shopPlugin
             case 'request':
                 waLog::dump($format . " " . $message, 'shop/retailcrm/request-error.log');
                 break;
+            case 'trigger':
+                waLog::dump($format . " " . $message, 'shop/retailcrm/trigger.log');
+                break;
         }
 
         $settings = $this->settings();
@@ -86,6 +106,9 @@ class shopRetailcrmPlugin extends shopPlugin
         }
     }
 
+    /**
+     * @param $params
+     */
     public function orderAdd(&$params)
     {
         //get settings
@@ -105,6 +128,12 @@ class shopRetailcrmPlugin extends shopPlugin
         }
     }
 
+    /**
+     * @param $customers
+     * @param $orders
+     * @param $params
+     * @return array
+     */
     private function orderPrepare($customers, $orders, $params)
     {
         $result = array();
@@ -114,6 +143,9 @@ class shopRetailcrmPlugin extends shopPlugin
         return $result;
     }
 
+    /**
+     * @param $edit
+     */
     private function edit($edit)
     {
         $customerId = '';
@@ -160,6 +192,10 @@ class shopRetailcrmPlugin extends shopPlugin
         }
     }
 
+    /**
+     * @param $parentSetting
+     * @return array
+     */
     public function getCustomers($parentSetting)
     {
         $contact = new waContactsCollection();
@@ -281,6 +317,11 @@ class shopRetailcrmPlugin extends shopPlugin
         return $customers;
     }
 
+    /**
+     * @param $customers
+     * @param $parentSetting
+     * @return array
+     */
     public function getOrders($customers, $parentSetting)
     {
         $shopOrders = null;
@@ -406,6 +447,10 @@ class shopRetailcrmPlugin extends shopPlugin
         return $orders;
     }
 
+    /**
+     * @param array $params
+     * @return bool
+     */
     public function validate(array $params)
     {
         $valid = false;
@@ -429,6 +474,10 @@ class shopRetailcrmPlugin extends shopPlugin
         return $valid;
     }
 
+    /**
+     * @param array $headers
+     * @return bool
+     */
     public function checkAuth(array $headers)
     {
         $isAuth = false;
@@ -451,6 +500,10 @@ class shopRetailcrmPlugin extends shopPlugin
         return $isAuth;
     }
 
+    /**
+     * @param $id
+     * @return null
+     */
     public function getRetailcrmOrderData($id)
     {
         $order = null;
@@ -458,7 +511,7 @@ class shopRetailcrmPlugin extends shopPlugin
         $client = $this->getRetailcrmApiClient();
         if ($client) {
             try {
-                $response = $this->client->ordersGet($id, 'id');
+                $response = $client->ordersGet($id, 'id');
             } catch (\CurlException $e) {
                 $this->logger("Connection error: " . $e->getMessage(), 'connect');
             }
@@ -472,6 +525,9 @@ class shopRetailcrmPlugin extends shopPlugin
         return $order;
     }
 
+    /**
+     * @return array|mixed|string
+     */
     public function settings()
     {
         $settings = (new waAppSettingsModel())->get(array('shop', 'retailcrm'), 'options');
@@ -480,6 +536,9 @@ class shopRetailcrmPlugin extends shopPlugin
         return $settings;
     }
 
+    /**
+     * @return ApiVersion5
+     */
     public function getRetailcrmApiClient()
     {
         static $client;
@@ -494,6 +553,9 @@ class shopRetailcrmPlugin extends shopPlugin
         return $client;
     }
 
+    /**
+     * @return bool
+     */
     public function checkConnect()
     {
         $client = $this->getRetailcrmApiClient();
